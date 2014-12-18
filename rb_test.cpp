@@ -1,149 +1,119 @@
-#include"rbtree.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <time.h>
+#include "rbtree.h"
+#include <iostream>
 
-#define SIZE 12
-typedef unsigned long long ULL;
-void padding ( char ch, int n )
+template<class K, class V>
+class KVContainer
 {
-    int i;
+public:
+    virtual bool Put(const K k, const V v)  = 0;
+    virtual bool Get(const K k, V &v) = 0;
+    virtual bool Remove(const K k)    = 0;
+};
 
-    for ( i = 0; i < n; i++ )
-        putchar ( ch );
-}
-
-void print_node ( struct rbtree_node *root, int level )
+template<class K, class V>
+class Map : public KVContainer<K,V>
 {
-
-    if ( root == NULL ) 
+private:
+    class Schema
     {
-        padding ( '\t', level );
-        puts ( "NIL" );
-
-    }
-    else 
+    public:
+        K key;
+        V value;
+    public:
+        Schema(){}
+        Schema(K key, V value):key(key),value(value){}
+    };
+    
+private:
+    static int fn(void* a, void* b)
     {
-        print_node ( root->right, level + 1 );
-        padding ( '\t', level );
-        if(root->color == RB_BLACK)
-        {
-            printf ( "(%llu)\n", *(ULL*)(root->key) );
-        }
-        else
-            printf ( "%llu\n",*(ULL*)(root->key) );
-        print_node ( root->left, level + 1 );
+        return *(K*)a - *(K*)b;
     }
-}
-
-void print_tree(struct rbtree* tree)
-{
-    print_node(tree->root,0);
-    printf("-------------------------------------------\n");
-}
-
-int compare(void* key_a,void* key_b)
-{
-    ULL key_a_real = *(ULL*) (key_a);
-    ULL key_b_real = *(ULL*) (key_b);
-    if(key_a_real > key_b_real)
+private:
+    template<typename T>
+    void* dup(const T key)
     {
-        return 1;
+        return (void*)( new (malloc(sizeof(key))) T(key));
     }
-    else if(key_a_real == key_b_real)
+public:
+    Map():
+    mytree(NULL)
     {
-       return 0;
+        mytree = rbtree_init(fn);
     }
-    else
-        return -1;
-
-}
-
-void  process_null_node(struct rbtree_node* node, int nullcount, FILE* stream)
-{
-        fprintf(stream, "    null%d [shape=hexagon];\n", nullcount);
-        fprintf(stream, "    %llu -> null%d;\n",*(ULL*)(node->key), nullcount);
-}
-void __tree2dot(struct rbtree_node* node,FILE* stream)
-{
-    static int  null_node_cnt = 0;
-    if(node->color == RB_BLACK)
-    {
-        fprintf(stream,"%llu [shape=box];\n",*(ULL*)(node->key));
-    }
-
-    if(node->left)
+    ~Map()
     {
         
-        fprintf(stream,"  %llu -> %llu;\n",*(ULL*)(node->key),*(ULL*)(node->left->key));
-        __tree2dot(node->left,stream);
     }
-    else
+    virtual bool Put(const K key, const V value)
     {
-        process_null_node(node,null_node_cnt++,stream);
+        V* pHit = (V*)rbtree_lookup(mytree, dup(key));
+        if (pHit) {
+            *pHit = value;
+            return true;
+        }
+        
+       
+        // Create New - Insert
+        int ret = rbtree_insert(mytree, dup(key), dup(value));
+        return ret == 0;
     }
-    if(node->right)
-    {
-        fprintf(stream,"  %llu -> %llu;\n",*(ULL*)(node->key),*(ULL*)(node->right->key));
-        __tree2dot(node->right,stream);
-    }
-    else
-    {
-        process_null_node(node,null_node_cnt++,stream);
-    }
-}
-int tree2dot(struct rbtree* tree,char* filename)
-{
-    assert(tree != NULL && filename != NULL);
-    FILE* stream = fopen(filename,"w+");
-    if(stream == NULL)
-    {
-        fprintf(stderr, "open failed \n");
-        return -1;
-    }
-
-    fprintf(stream,"digraph {\n");
-    __tree2dot(tree->root,stream);
-
-
-    fprintf(stream,"}\n");
-    fclose(stream);
-
-    return 0;
     
+    virtual bool Get(const K key, V& value)
+    {
+        V* pHit = (V*)rbtree_lookup(mytree, dup(key));
+        if (pHit) {
+            value = *pHit;
+            return true;
+        }
+        
+        if (pHit) {
+            value = *pHit; // Copy Value to Output Parameter
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    virtual bool Remove(const K key)
+    {
+        int ret = rbtree_remove(mytree, (void*)&key);
+        
+        if ( ret == 0)
+        {
+            return true;
+        }
+
+        return false;
+    }
+    
+private:
+    struct rbtree* mytree;
+};
+
+int develop_generic_typed_map()
+{
+    Map<int, int> dict;
+    
+    for (int i = 0; i < 10000; i++) {
+        bool bRet = dict.Put(i, i + 50);
+//        std::cout << "Put returns " << (bRet?"true":"false") << std::endl;
+        int value = i + 50;
+        if (dict.Get(i, value)) {
+            std::cout << "dict[" << i << "] = " << value << std::endl;
+        }
+        else
+        {
+            std::cout << "dict.Get Failed" << std::endl;
+        }
+    }
+    return 0;
 }
+
 int main()
 {
-    struct rbtree* tree = rbtree_init(compare);
-    int ret = 0;
-    if(tree == NULL)
-    {
-        fprintf(stderr,"malloc tree failed\n");
-        return -1;
-    }
-
-    int i = 0;
-    ULL  * array = malloc(SIZE*sizeof(ULL ));
-    if(array == NULL)
-    {
-        fprintf(stderr,"malloc failed\n");
-        return -1;
-    }
- //   srand(time(NULL));
-    for(i = 0;i<SIZE;i++)
-    {
-        array[i] = rand()%1000;
-        ret  = rbtree_insert(tree,&array[i],&array[i]);//-1 mean alloc node failed, 
-                                                     //-2 mean existed node with same key
-        void * data = rbtree_lookup(tree,&array[i]);
-        if(ret == 0)
-            assert(data == &array[i]);
-    }
-
-    print_tree(tree);
-    tree2dot(tree,"tree.dot");
-    return 0;
+    return develop_generic_typed_map();
 }
-
 

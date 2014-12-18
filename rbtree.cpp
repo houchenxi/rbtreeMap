@@ -140,7 +140,7 @@ struct rbtree_node* rbtree_next(struct rbtree_node* node)
 
 struct rbtree_node* rbtree_createnode(void *key, void* data)
 {
-    struct rbtree_node* newnode = malloc(sizeof(struct rbtree_node));
+    struct rbtree_node* newnode = (struct rbtree_node*)malloc(sizeof(struct rbtree_node));
     if(newnode == NULL)
         return NULL;
 
@@ -264,7 +264,7 @@ static void rotate_right(struct rbtree_node *node, struct rbtree *tree)
 
 struct rbtree* rbtree_init(rbtree_cmp_fn_t compare)
 {
-    struct rbtree* tree = malloc(sizeof(struct rbtree));
+    struct rbtree* tree = (struct rbtree*)malloc(sizeof(struct rbtree));
     if(tree == NULL)
         return NULL;
     else
