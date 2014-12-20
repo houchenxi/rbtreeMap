@@ -97,12 +97,13 @@ int develop_generic_typed_map()
 {
     Map<int, int> dict;
     
+    for(int j = 0; j < 1000000; j++)
     for (int i = 0; i < 10000; i++) {
         bool bRet = dict.Put(i, i + 50);
 //        std::cout << "Put returns " << (bRet?"true":"false") << std::endl;
         int value = i + 50;
         if (dict.Get(i, value)) {
-            std::cout << "dict[" << i << "] = " << value << std::endl;
+            std::cout << "Loop#:" << j << " " << "dict[" << i << "] = " << value << std::endl;
         }
         else
         {
