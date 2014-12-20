@@ -99,7 +99,10 @@ int develop_generic_typed_map()
     
     for(int j = 0; j < 1000000; j++)
     for (int i = 0; i < 10000; i++) {
-        bool bRet = dict.Put(i, i + 50);
+        if(!dict.Put(i, i + 50))
+        {
+            std::cout << "if(!dict.Put(i, i + 50)) failed. " << "i = " << i << std::endl;
+        }
 //        std::cout << "Put returns " << (bRet?"true":"false") << std::endl;
         int value = i + 50;
         if (dict.Get(i, value)) {
